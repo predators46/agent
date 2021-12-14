@@ -793,9 +793,9 @@ EOF
 # 修改nginx重定向配置
 updateRedirectNginxConf() {
 
-	if [[ ${BTPanelStatus} = "true" ]];then
+	if [[ ${BTPanelStatus} = "true" ]]; then
 
-cat <<EOF >${nginxConfigPath}alone.conf
+		cat <<EOF >${nginxConfigPath}alone.conf
         server {
         		listen 127.0.0.1:31300;
         		server_name _;
@@ -804,7 +804,7 @@ cat <<EOF >${nginxConfigPath}alone.conf
 EOF
 
 	else
-cat <<EOF >${nginxConfigPath}alone.conf
+		cat <<EOF >${nginxConfigPath}alone.conf
         server {
         	listen 80;
         	listen [::]:80;
@@ -1131,7 +1131,7 @@ renewalTLS() {
 		echoContent skyBlue "\n进度  $1/1 : 更新证书"
 	fi
 	local domain=${currentHost}
-	if [[ -z "${currentHost}" && -n "${tlsDomain}" ]];then
+	if [[ -z "${currentHost}" && -n "${tlsDomain}" ]]; then
 		domain=${tlsDomain}
 	fi
 
@@ -3613,16 +3613,13 @@ streamingToolbox() {
 	echoContent skyBlue "\n功能 1/${totalProgress} : 流媒体工具箱"
 	echoContent red "\n=============================================================="
 	#	echoContent yellow "1.Netflix检测"
-	echoContent yellow "1.任意门落地机解锁Netflix"
+	echoContent yellow "1.任意门落地机解锁流媒体"
 	echoContent yellow "2.DNS解锁流媒体"
 	read -r -p "请选择:" selectType
 
 	case ${selectType} in
-	#	1)
-	#		checkNetflix
-	#		;;
 	1)
-		dokodemoDoorUnblockNetflix
+		dokodemoDoorUnblockStreamingMedia
 		;;
 	2)
 		dnsUnlockNetflix
@@ -3631,9 +3628,9 @@ streamingToolbox() {
 
 }
 
-# 任意门解锁netflix
-dokodemoDoorUnblockNetflix() {
-	echoContent skyBlue "\n功能 1/${totalProgress} : 任意门落地机解锁Netflix"
+# 任意门解锁流媒体
+dokodemoDoorUnblockStreamingMedia() {
+	echoContent skyBlue "\n功能 1/${totalProgress} : 任意门落地机解锁流媒体"
 	echoContent red "\n=============================================================="
 	echoContent yellow "# 注意事项"
 	echoContent yellow "任意门解锁详解，请查看此文章[https://github.com/mack-a/v2ray-agent/blob/master/documents/netflix/dokodemo-unblock_netflix.md]\n"
@@ -3645,35 +3642,45 @@ dokodemoDoorUnblockNetflix() {
 
 	case ${selectType} in
 	1)
-		setDokodemoDoorUnblockNetflixOutbounds
+		setDokodemoDoorUnblockStreamingMediaOutbounds
 		;;
 	2)
-		setDokodemoDoorUnblockNetflixInbounds
+		setDokodemoDoorUnblockStreamingMediaInbounds
 		;;
 	3)
-		removeDokodemoDoorUnblockNetflix
+		removeDokodemoDoorUnblockStreamingMedia
 		;;
 	esac
 }
 
 # 设置任意门解锁Netflix【出站】
-setDokodemoDoorUnblockNetflixOutbounds() {
-	read -r -p "请输入解锁Netflix vps的IP:" setIP
+setDokodemoDoorUnblockStreamingMediaOutbounds() {
+	read -r -p "请输入解锁流媒体 vps的IP:" setIP
+	echoContent red "=============================================================="
+	echoContent yellow "# 注意事项\n"
+	echoContent yellow "1.规则仅支持预定义域名列表[https://github.com/v2fly/domain-list-community]"
+	echoContent yellow "2.详细文档[https://www.v2fly.org/config/routing.html]"
+	echoContent yellow "3.如内核启动失败请检查域名后重新添加域名"
+	echoContent yellow "4.不允许有特殊字符，注意逗号的格式"
+	echoContent yellow "5.每次添加都是重新添加，不会保留上次域名"
+	echoContent yellow "6.录入示例:netflix,disney,hulu\n"
+	read -r -p "请按照上面示例录入域名:" domainList
+
 	if [[ -n "${setIP}" ]]; then
 
-		unInstallOutbounds netflix-80
-		unInstallOutbounds netflix-443
+		unInstallOutbounds streamingMedia-80
+		unInstallOutbounds streamingMedia-443
 
-		outbounds=$(jq -r ".outbounds += [{\"tag\":\"netflix-80\",\"protocol\":\"freedom\",\"settings\":{\"domainStrategy\":\"AsIs\",\"redirect\":\"${setIP}:22387\"}},{\"tag\":\"netflix-443\",\"protocol\":\"freedom\",\"settings\":{\"domainStrategy\":\"AsIs\",\"redirect\":\"${setIP}:22388\"}}]" ${configPath}10_ipv4_outbounds.json)
+		outbounds=$(jq -r ".outbounds += [{\"tag\":\"streamingMedia-80\",\"protocol\":\"freedom\",\"settings\":{\"domainStrategy\":\"AsIs\",\"redirect\":\"${setIP}:22387\"}},{\"tag\":\"streamingMedia-443\",\"protocol\":\"freedom\",\"settings\":{\"domainStrategy\":\"AsIs\",\"redirect\":\"${setIP}:22388\"}}]" ${configPath}10_ipv4_outbounds.json)
 
 		echo "${outbounds}" | jq . >${configPath}10_ipv4_outbounds.json
 
 		if [[ -f "${configPath}09_routing.json" ]]; then
-			unInstallRouting netflix-80
-			unInstallRouting netflix-443
+			unInstallRouting streamingMedia-80
+			unInstallRouting streamingMedia-443
 
 			local routing
-			routing=$(jq -r '.routing.rules += [{"type":"field","port":80,"domain":["ip.sb","geosite:netflix"],"outboundTag":"netflix-80"},{"type":"field","port":443,"domain":["ip.sb","geosite:netflix"],"outboundTag":"netflix-443"}]' ${configPath}09_routing.json)
+			routing=$(jq -r '.routing.rules += [{"type":"field","port":80,"domain":["ip.sb",\"geosite:${domainList//,/\",\"geosite:}\"],"outboundTag":"streamingMedia-80"},{"type":"field","port":443,"domain":["ip.sb",\"geosite:${domainList//,/\",\"geosite:}\"],"outboundTag":"streamingMedia-443"}]' ${configPath}09_routing.json)
 			echo "${routing}" | jq . >${configPath}09_routing.json
 		else
 			cat <<EOF >${configPath}09_routing.json
@@ -3686,18 +3693,18 @@ setDokodemoDoorUnblockNetflixOutbounds() {
         "port": 80,
         "domain": [
           "ip.sb",
-          "geosite:netflix"
+          "geosite:${domainList//,/\",\"geosite:}"
         ],
-        "outboundTag": "netflix-80"
+        "outboundTag": "streamingMedia-80"
       },
       {
         "type": "field",
         "port": 443,
         "domain": [
           "ip.sb",
-          "geosite:netflix"
+          "geosite:${domainList//,/\",\"geosite:}"
         ],
-        "outboundTag": "netflix-443"
+        "outboundTag": "streamingMedia-443"
       }
     ]
   }
@@ -3705,24 +3712,29 @@ setDokodemoDoorUnblockNetflixOutbounds() {
 EOF
 		fi
 		reloadCore
-		echoContent green " ---> 添加Netflix出站解锁成功"
-		#		echoContent yellow " ---> 不支持trojan的相关节点"
+		echoContent green " ---> 添加出站解锁成功"
 		exit 0
 	fi
 	echoContent red " ---> ip不可为空"
 }
 
 # 设置任意门解锁Netflix【入站】
-setDokodemoDoorUnblockNetflixInbounds() {
+setDokodemoDoorUnblockStreamingMediaInbounds() {
 
 	echoContent skyBlue "\n功能 1/${totalProgress} : 任意门添加入站"
 	echoContent red "\n=============================================================="
 	echoContent yellow "# 注意事项\n"
-	echoContent yellow "支持批量添加"
-	echoContent yellow "不允许有特殊字符，注意逗号的格式"
-	echoContent yellow "录入示例:1.1.1.1,1.1.1.2\n"
+	echoContent yellow "1.规则仅支持预定义域名列表[https://github.com/v2fly/domain-list-community]"
+	echoContent yellow "2.详细文档[https://www.v2fly.org/config/routing.html]"
+	echoContent yellow "3.如内核启动失败请检查域名后重新添加域名"
+	echoContent yellow "4.不允许有特殊字符，注意逗号的格式"
+	echoContent yellow "5.每次添加都是重新添加，不会保留上次域名"
+	echoContent yellow "6.ip录入示例:1.1.1.1,1.1.1.2"
+	echoContent yellow "7.域名录入示例:netflix,disney,hulu\n"
 	read -r -p "请输入允许访问该解锁Netflix vps的IP:" setIPs
 	if [[ -n "${setIPs}" ]]; then
+		read -r -p "请按照上面示例录入域名:" domainList
+
 		cat <<EOF >${configPath}01_netflix_inbounds.json
 {
   "inbounds": [
@@ -3742,7 +3754,7 @@ setDokodemoDoorUnblockNetflixInbounds() {
           "http"
         ]
       },
-      "tag": "unblock-80"
+      "tag": "streamingMedia-80"
     },
     {
       "listen": "0.0.0.0",
@@ -3760,7 +3772,7 @@ setDokodemoDoorUnblockNetflixInbounds() {
           "tls"
         ]
       },
-      "tag": "unblock-443"
+      "tag": "streamingMedia-443"
     }
   ]
 }
@@ -3791,34 +3803,44 @@ EOF
 }
 EOF
 
-		cat <<EOF >${configPath}09_routing.json
-{
-  "routing": {
-    "rules": [
-      {
-        "source": [],
-        "type": "field",
-        "inboundTag": [
-          "unblock-80",
-          "unblock-443"
-        ],
-        "outboundTag": "direct"
-      },
-      {
-        "domains": [
-        	"geosite:netflix"
-        ],
-        "type": "field",
-        "inboundTag": [
-          "unblock-80",
-          "unblock-443"
-        ],
-        "outboundTag": "blackhole-out"
-      }
-    ]
-  }
-}
+		if [[ -f "${configPath}09_routing.json" ]]; then
+			unInstallRouting streamingMedia-80
+			unInstallRouting streamingMedia-443
+
+			local routing
+			routing=$(jq -r '.routing.rules += [{"source":[],"type":"field","inboundTag":["streamingMedia-80","streamingMedia-443"],"outboundTag":"direct"},{"domains":[\"geosite:${domainList//,/\",\"geosite:}\"],"type":"field","inboundTag":["streamingMedia-80","streamingMedia-443"],"outboundTag":"blackhole-out"}]' ${configPath}09_routing.json)
+			echo "${routing}" | jq . >${configPath}09_routing.json
+		else
+			cat <<EOF >${configPath}09_routing.json
+            {
+              "routing": {
+                "rules": [
+                  {
+                    "source": [],
+                    "type": "field",
+                    "inboundTag": [
+                      "streamingMedia-80",
+                      "streamingMedia-443"
+                    ],
+                    "outboundTag": "direct"
+                  },
+                  {
+                    "domains": [
+                    	"geosite:${domainList//,/\",\"geosite:}"
+                    ],
+                    "type": "field",
+                    "inboundTag": [
+                      "streamingMedia-80",
+                      "streamingMedia-443"
+                    ],
+                    "outboundTag": "blackhole-out"
+                  }
+                ]
+              }
+            }
 EOF
+
+		fi
 
 		oldIFS="${IFS}"
 		IFS=","
@@ -3843,10 +3865,10 @@ EOF
 # 移除任意门解锁Netflix
 removeDokodemoDoorUnblockNetflix() {
 
-	unInstallOutbounds netflix-80
-	unInstallOutbounds netflix-443
-	unInstallRouting netflix-80
-	unInstallRouting netflix-443
+	unInstallOutbounds streamingMedia-80
+	unInstallOutbounds streamingMedia-443
+	unInstallRouting streamingMedia-80
+	unInstallRouting streamingMedia-443
 	rm -rf ${configPath}01_netflix_inbounds.json
 
 	reloadCore
@@ -3862,35 +3884,6 @@ reloadCore() {
 		handleV2Ray stop
 		handleV2Ray start
 	fi
-}
-
-# 检查 vps是否支持Netflix
-checkNetflix() {
-	echoContent red "\n注意事项"
-	echoContent yellow " 1.只可检测vps是否支持Netflix"
-	echoContent yellow " 2.无法检测代理配置dns解锁后是否支持Netflix"
-	echoContent yellow " 3.可检测vps配置dns解锁后是否支持Netflix\n"
-	echoContent skyBlue " ---> 检测中"
-	netflixResult=$(curl -s -m 2 https://www.netflix.com | grep "Not Available")
-	if [[ -n ${netflixResult} ]]; then
-		echoContent red " ---> Netflix不可用"
-		exit 0
-	fi
-
-	netflixResult=$(curl -s -m 2 https://www.netflix.com | grep "NSEZ-403")
-	if [[ -n ${netflixResult} ]]; then
-		echoContent red " ---> Netflix不可用"
-		exit 0
-	fi
-
-	echoContent skyBlue " ---> 检测绝命毒师是否可以播放"
-	result=$(curl -s -m 2 https://www.netflix.com/title/70143836 | grep "page-404")
-	if [[ -n ${result} ]]; then
-		echoContent green " ---> 仅可看自制剧"
-		exit 0
-	fi
-	echoContent green " ---> Netflix解锁"
-	exit 0
 }
 
 # dns解锁Netflix
@@ -3931,7 +3924,7 @@ setUnlockDNS() {
 		echoContent yellow "7.默认方案请输入1，默认方案包括以下内容"
 		echoContent yellow "netflix,bahamut,hulu,hbo,disney,bbc,4chan,fox,abema,dmm,niconico,pixiv,bilibili,viu"
 		read -r -p "请按照上面示例录入域名:" domainList
-		if [[ "${domainList}" = "1" ]];then
+		if [[ "${domainList}" = "1" ]]; then
 			cat <<EOF >${configPath}11_dns.json
             {
             	"dns": {
@@ -3961,7 +3954,7 @@ setUnlockDNS() {
             	}
             }
 EOF
-		elif [[ -n "${domainList}" ]];then
+		elif [[ -n "${domainList}" ]]; then
 			cat <<EOF >${configPath}11_dns.json
                         {
                         	"dns": {
